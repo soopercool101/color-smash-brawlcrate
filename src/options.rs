@@ -5,6 +5,8 @@
 //! for alternate interfaces as well.
 
 use std::ops::Deref;
+use std::env;
+use std::io;
 
 pub enum ColorType {
     Rgba8,
@@ -23,4 +25,10 @@ pub fn color_type(input: Option<String>) -> Result<ColorType, String> {
         }
         None => Ok(ColorType::Rgba8),
     }
+}
+
+pub fn get_path() -> io::Result<String> {
+    let exe = env::current_exe()?;
+    let dir = exe.parent().expect("Executable must be in some directory");
+    Ok(dir.to_string_lossy().to_string())
 }

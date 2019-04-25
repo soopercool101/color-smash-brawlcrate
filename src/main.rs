@@ -6,6 +6,7 @@
 
 use std::env;
 use std::path::{Path, PathBuf};
+use std::fs;
 
 extern crate image as image_lib;
 extern crate num;
@@ -43,12 +44,20 @@ fn main() {
         print!("color_smash {}", env!("CARGO_PKG_VERSION"));
         return;
     }
+    
+    let appPath = options::get_path().unwrap_or_else(|error| {
+        println!("{}", error);
+        std::process::exit(1);
+    });
 
     let colortype = options::color_type(matches.opt_str("colortype")).unwrap_or_else(|error| {
         println!("{}", error);
         std::process::exit(1);
     });
 
+    //if matches.free.is_empty() {
+    //    exit_with_bad_args("No input file specified.", program, options);
+    //}
     let num_colors: u32 = matches
         .opt_get_default("colors", 256)
         .unwrap_or_else(|error| {
@@ -56,34 +65,38 @@ fn main() {
             std::process::exit(1);
         });
 
+    let verbose = matches.opt_present("verbose");
+    
+    let mut input_files: Vec<String> = Vec::new();
+    let inPath = appPath.to_owned() + "/cs";
+	let paths = fs::read_dir(inPath).unwrap();
+    for path in paths {
+		//println!("{}", path.unwrap().path().display().to_string());
+		let temp = String::from(path.unwrap().path().display().to_string());
+		if temp.ends_with(".png") {
+			input_files.push(temp);
+		}
+    }
+    
     if num_colors > 256 {
         println!("More than 256 colors in the palette is not supported.");
         std::process::exit(1);
     }
-
-    if matches.free.is_empty() {
-        exit_with_bad_args("No input file specified.", program, options);
-    }
-
-    let verbose = matches.opt_present("verbose");
-
-    let input_paths: Vec<&Path> = matches
-        .free
-        .iter()
-        .map(|input_string| Path::new(input_string))
-        .collect();
-    let output_pathbufs: Vec<PathBuf> = input_paths
-        .iter()
-        .map(|input_path| get_output_path(input_path, &matches))
-        .collect();
-    let result = images::quantize(
-        input_paths.into_iter(),
-        output_pathbufs.iter().map(PathBuf::as_path),
-        colortype,
-        num_colors,
-        verbose,
-    );
-
+    let input_paths: Vec<&Path> = input_files.iter()
+                                                   .map(|input_string| Path::new(input_string))
+                                                   .collect();
+    
+    let output_pathbufs: Vec<PathBuf> = input_paths.iter()
+                                                   .map(|input_path| {
+                                                       get_output_path(input_path, &matches)
+                                                   })
+                                                   .collect();
+    let result = images::quantize(input_paths.into_iter(),
+                                  output_pathbufs.iter().map(|o| o.as_path()),
+                                  colortype,
+                                  num_colors,
+                                  verbose);
+    
     if let Err(error) = result {
         println!("{}", error);
         std::process::exit(1);
@@ -130,12 +143,15 @@ fn exit_with_bad_args(error: &str, program: &str, options: Options) -> ! {
 }
 
 fn get_output_path(input_file: &Path, matches: &Matches) -> PathBuf {
-    let stem = input_file.file_stem().unwrap();
-    let output_suffix = match matches.opt_str("suffix") {
-        Some(suffix) => suffix,
-        None => " (smashed)".to_string(),
-    };
-    let output_extension = ".png";
-    let output_name = stem.to_string_lossy().into_owned() + &output_suffix + output_extension;
+    //let stem = input_file.file_stem().unwrap();
+	let filename = input_file.file_name().unwrap();
+    //let output_suffix = match matches.opt_str("suffix") {
+    //    Some(suffix) => suffix,
+    //    None => " (smashed)".to_string(),
+    //};
+    //let output_extension = ".png";
+    //let output_name = stem.to_string_lossy().into_owned() + &output_suffix + output_extension;
+    let output_name = "./out/".to_owned() + &filename.to_string_lossy().into_owned();
+	//println!("{}", output_name);
     input_file.with_file_name(output_name)
 }
