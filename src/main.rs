@@ -14,7 +14,7 @@ extern crate ordered_float;
 extern crate png;
 
 extern crate getopts;
-use getopts::{Matches, Options};
+use getopts::{Options};
 
 mod color;
 mod images;
@@ -45,7 +45,7 @@ fn main() {
         return;
     }
     
-    let appPath = options::get_path().unwrap_or_else(|error| {
+    let app_path = options::get_path().unwrap_or_else(|error| {
         println!("{}", error);
         std::process::exit(1);
     });
@@ -54,10 +54,7 @@ fn main() {
         println!("{}", error);
         std::process::exit(1);
     });
-
-    //if matches.free.is_empty() {
-    //    exit_with_bad_args("No input file specified.", program, options);
-    //}
+    
     let num_colors: u32 = matches
         .opt_get_default("colors", 256)
         .unwrap_or_else(|error| {
@@ -68,10 +65,14 @@ fn main() {
     let verbose = matches.opt_present("verbose");
     
     let mut input_files: Vec<String> = Vec::new();
-    let inPath = appPath.to_owned() + "/cs";
-	let paths = fs::read_dir(inPath).unwrap();
+    let in_path = app_path.to_owned() + "/cs";
+    
+    // Ensure input/output directories are properly created
+    assert!(Path::new(&(in_path.to_owned())).is_dir() || std::fs::create_dir(in_path.to_owned()).is_ok());
+    assert!(Path::new(&(in_path.to_owned() + "/out")).is_dir() || std::fs::create_dir(in_path.to_owned() + "/out").is_ok());
+    
+	let paths = fs::read_dir(in_path).unwrap();
     for path in paths {
-		//println!("{}", path.unwrap().path().display().to_string());
 		let temp = String::from(path.unwrap().path().display().to_string());
 		if temp.ends_with(".png") {
 			input_files.push(temp);
@@ -88,7 +89,7 @@ fn main() {
     
     let output_pathbufs: Vec<PathBuf> = input_paths.iter()
                                                    .map(|input_path| {
-                                                       get_output_path(input_path, &matches)
+                                                       get_output_path(input_path)
                                                    })
                                                    .collect();
     let result = images::quantize(input_paths.into_iter(),
@@ -142,7 +143,7 @@ fn exit_with_bad_args(error: &str, program: &str, options: Options) -> ! {
     std::process::exit(1);
 }
 
-fn get_output_path(input_file: &Path, matches: &Matches) -> PathBuf {
+fn get_output_path(input_file: &Path) -> PathBuf {
     //let stem = input_file.file_stem().unwrap();
 	let filename = input_file.file_name().unwrap();
     //let output_suffix = match matches.opt_str("suffix") {

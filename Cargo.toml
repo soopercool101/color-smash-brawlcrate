@@ -1,6 +1,6 @@
 [package]
 name = "color_smash"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["soopercool101 <soopercoolstages@gmail.com>, Peter Hatch <petershatch@gmail.com>"]
 
 [dependencies]
